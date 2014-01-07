@@ -63,6 +63,10 @@ fi
 # See https://github.com/fgrehm/vagrant-lxc/issues/91 for more info
 echo 'ff02::3 ip6-allhosts' >> ${ROOTFS}/etc/hosts
 
+# Ensure locales are properly set, based on http://askubuntu.com/a/238063
+chroot ${ROOTFS} locale-gen en_US.UTF-8
+chroot ${ROOTFS} dpkg-reconfigure locales
+
 
 ##################################################################################
 # 2 - Prepare vagrant user
@@ -83,16 +87,15 @@ echo $VAGRANT_KEY > ${ROOTFS}/home/vagrant/.ssh/authorized_keys
 chroot ${ROOTFS} chown -R vagrant: /home/vagrant/.ssh
 
 # Enable passwordless sudo for users under the "sudo" group
-cp ${ROOTFS}/etc/sudoers{,.orig}
-sed -i -e \
-      's/%sudo\s\+ALL=(ALL\(:ALL\)\?)\s\+ALL/%sudo ALL=NOPASSWD:ALL/g' \
-      ${ROOTFS}/etc/sudoers
+echo "vagrant ALL=(ALL) NOPASSWD:ALL" > ${ROOTFS}/etc/sudoers.d/vagrant
+chmod 0440 ${ROOTFS}/etc/sudoers.d/vagrant
 
 
 ##################################################################################
 # 4 - Add some goodies and update packages
 
 PACKAGES=(vim curl wget man-db bash-completion)
+chroot ${ROOTFS} apt-get update
 chroot ${ROOTFS} apt-get install ${PACKAGES[*]} -y --force-yes
 chroot ${ROOTFS} apt-get upgrade -y --force-yes
 
